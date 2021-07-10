@@ -1,3 +1,4 @@
+import smtplib
 from tkinter import *
 from tkinter import messagebox
 import mysql.connector as mysql
@@ -5,7 +6,8 @@ from PIL import ImageTk, Image
 from datetime import *
 from tkinter.ttk import Combobox, Treeview
 import rsaidnumber
-import playsound
+from playsound import playsound
+import re
 
 # window set up
 root = Tk()
@@ -16,6 +18,9 @@ root.title("Login Form")
 # variables
 now = datetime.now()
 date = now.strftime("%Y-%m-%d %H:%M:%S")
+
+# regular expression for validating email
+regex = '^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$'
 
 
 class AllInOne:
@@ -45,6 +50,9 @@ class AllInOne:
         login.geometry("500x500")
         login.config(bg="#000000")
         login.title("Login Form")
+
+        # key-binding
+        login.bind("<Control-a>", self.admin_window)
 
         def clear_program():
             ent_idnum.delete(0, END)
@@ -76,6 +84,7 @@ class AllInOne:
                     second_values = (now, date, ent_idnum.get(), foreign_id)
                     cursor.execute(second_query, second_values)
                     db.commit()
+                    playsound("./Audio/login.mp3")
                     messagebox.showinfo("Success", "You Have Successfully Logged In")
                 elif id_number is False:
                     messagebox.showerror("Error", "Please Enter A Valid 13 Digit ID Number")
@@ -104,6 +113,7 @@ class AllInOne:
                     second_values = (now, date, ent_idnum.get())
                     cursor.execute(second_query, second_values)
                     db.commit()
+                    playsound("./Audio/logout.mp3")
                     messagebox.showinfo("Success", "You Have Successfully Logged Out")
                 elif id_number is False:
                     messagebox.showerror("Error", "Please Enter A Valid 13 Digit ID Number")
@@ -150,7 +160,7 @@ class AllInOne:
     def register_window(self):
         register = Toplevel()
         register.title("Register User")
-        register.geometry("500x550")
+        register.geometry("500x600")
         register.config(bg="#000000")
 
         def new_user():
@@ -161,9 +171,14 @@ class AllInOne:
                 database="lifechoicesonline"
             )
             try:
+                email = ent_email.get()
                 id_number = rsaidnumber.parse(ent_idnum.get())
                 phone_number = int(ent_cellnum.get())
                 nok_number = int(ent_nextkincell.get())
+                if re.search(regex, email):
+                    pass
+                else:
+                    messagebox.showinfo("Failure", "Invalid Email")
                 if id_number is False:
                     messagebox.showerror("Error", "Please Enter A Valid ID Number")
                 elif type(phone_number) == str or type(nok_number) == str:
@@ -197,10 +212,25 @@ class AllInOne:
                     cursor.execute(second_query, second_values)
                     db.commit()
 
-                    messagebox.showinfo("Success", "You have Successfully Registered! Please Login On The Previous "
-                                                   "Window!")
+                    # creates SMTP session
+                    s = smtplib.SMTP('smtp.gmail.com', 587)
+                    sender_email_id = 'lc.onlinelogin@gmail.com'
+                    receiver_email_id = ent_email.get()
+                    password = "lifechoices1234"
+                    # start TLS for security
+                    s.starttls()
+                    # Authentication
+                    s.login(sender_email_id, password)
+                    # message to be sent
+                    message = "Your Login details are as followed:\n"
+                    message = message + "Your Username: " + " " + ent_idnum.get() + "\n" + "Your Password: " + " " + ent_passwd.get() + "\n" + "Please do not forget to login after receiving this email!"
+                    # sending the mail
+                    s.sendmail(sender_email_id, receiver_email_id, message)
+                    # terminating the session
+                    s.quit()
+                    playsound("./Audio/mail.mp3")
+                    messagebox.showinfo("Success", "Please Check Your Email For Further Instructions!")
                     register.withdraw()
-                    self.login_window()
             except ValueError:
                 messagebox.showerror("Error", "Please Use Digits For ID Number And Cell Phone Numbers Only")
 
@@ -220,6 +250,9 @@ class AllInOne:
         lbl_nextkincell = Label(register, text="Next Of Kin Number:", bg="#000000", fg="#a5cf00",
                                 font="Halvetica 12 bold")
         lbl_nextkincell.place(x=80, y=440)
+        lbl_email = Label(register, text="Your Email Address:", bg="#000000", fg="#a5cf00",
+                                font="Halvetica 12 bold")
+        lbl_email.place(x=80, y=470)
         # image
         canvas = Canvas(register, width=500, height=250, borderwidth=0, highlightthickness=0, bg="#000000")
         canvas.place(x=125, y=0)
@@ -238,11 +271,13 @@ class AllInOne:
         ent_nextkin.place(x=280, y=410)
         ent_nextkincell = Entry(register)
         ent_nextkincell.place(x=280, y=440)
+        ent_email = Entry(register)
+        ent_email.place(x=280, y=470)
         # button
         btn_register = Button(register, text="Register", bg="#a5cf00", fg="#000000", font="Halvetica 12 bold",
                               borderwidth=10,
                               highlightthickness=0, command=new_user)
-        btn_register.place(x=200, y=490)
+        btn_register.place(x=200, y=520)
 
         # combo box
         combo_unit = Combobox(register, width=17)
@@ -253,7 +288,7 @@ class AllInOne:
 
         register.mainloop()
 
-    def admin_window(self):
+    def admin_window(self, event=None):
         root.withdraw()
         admin = Toplevel()
         admin.geometry("500x500")
@@ -286,6 +321,7 @@ class AllInOne:
                 if id_number is False:
                     messagebox.showerror("Error", "Please Enter A 13 Digit ID Number")
                 elif my_result[0] == ent_idnum2.get() and my_result[1] == ent_passwd2.get() and my_result[2] == "Staff":
+                    playsound("./Audio/login.mp3")
                     messagebox.showinfo("Success", "You Have Successfully Logged In")
                     admin.withdraw()
                     self.admin_table()
