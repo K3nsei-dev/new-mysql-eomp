@@ -1,10 +1,11 @@
-import tkinter
 from tkinter import *
 from tkinter import messagebox
 import mysql.connector as mysql
 from PIL import ImageTk, Image
 from datetime import *
 from tkinter.ttk import Combobox, Treeview
+import rsaidnumber
+import playsound
 
 # window set up
 root = Tk()
@@ -61,22 +62,27 @@ class AllInOne:
             )
 
             cursor = db.cursor()
-            query = "SELECT IDNumber, Password, UserID FROM register"
+            query = "SELECT IDNumber, Password, UserID FROM register WHERE IDNumber = %s"
+            value = ent_idnum.get()
             foreign_id = cursor.lastrowid
-            cursor.execute(query)
-            my_result = cursor.fetchall()
-
-            for x in my_result:
-                if x[0] == str(ent_idnum.get()) and x[1] == str(ent_passwd.get()):
-                    foreign_id = x[2]
+            cursor.execute(query, (value,))
+            my_result = cursor.fetchone()
+            try:
+                id_number = rsaidnumber.parse(ent_idnum.get())
+                if my_result[0] == ent_idnum.get() and my_result[1] == ent_passwd.get():
+                    foreign_id = my_result[2]
                     second_query = "INSERT INTO timesheet (LoggedInDate, LoggedInTime, IDNum, UserID) VALUES (%s, %s, " \
                                    " %s, %s) "
                     second_values = (now, date, ent_idnum.get(), foreign_id)
                     cursor.execute(second_query, second_values)
                     db.commit()
                     messagebox.showinfo("Success", "You Have Successfully Logged In")
+                elif id_number is False:
+                    messagebox.showerror("Error", "Please Enter A Valid 13 Digit ID Number")
                 else:
                     messagebox.showerror("Error", "Incorrect ID Number/ Password combination")
+            except ValueError:
+                messagebox.showerror("Error", "Invalid ID Number")
 
         def user_logout():
             db = mysql.connect(
@@ -87,34 +93,38 @@ class AllInOne:
             )
 
             cursor = db.cursor()
-            query = "SELECT IDNumber, Password FROM register"
-            # foreign_id = cursor.lastrowid
-            cursor.execute(query)
-            results = cursor.fetchall()
-
-            for x in results:
-                if x[0] == str(ent_idnum.get()) and x[1] == str(ent_passwd.get()):
+            query = "SELECT IDNumber, Password FROM register WHERE IDNumber = %s"
+            value = ent_idnum.get()
+            cursor.execute(query, (value,))
+            results = cursor.fetchone()
+            try:
+                id_number = rsaidnumber.parse(ent_idnum.get())
+                if results[0] == ent_idnum.get() and results[1] == ent_passwd.get():
                     second_query = "UPDATE timesheet SET LoggedOutDate = %s, LoggedOutTime = %s WHERE IDNum = %s"
                     second_values = (now, date, ent_idnum.get())
                     cursor.execute(second_query, second_values)
                     db.commit()
                     messagebox.showinfo("Success", "You Have Successfully Logged Out")
+                elif id_number is False:
+                    messagebox.showerror("Error", "Please Enter A Valid 13 Digit ID Number")
                 else:
                     messagebox.showerror("Error", "Incorrect ID Number/ Password combination")
+            except ValueError:
+                messagebox.showerror("Error", "Please Enter A Valid ID Number")
 
         # image
         canvas = Canvas(login, width=200, height=200, borderwidth=0, highlightthickness=0, bg="#000000")
         canvas.place(x=220, y=0)
         img = ImageTk.PhotoImage(Image.open("./Images/logo-2.jpg"))
         canvas.create_image(20, 20, anchor=N, image=img)
-        # labels
+        # labels and entries
         lbl_idnum = Label(login, text="ID Number: ", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
         lbl_idnum.place(x=120, y=225)
         ent_idnum = Entry(login)
         ent_idnum.place(x=245, y=225)
         lbl_passwd = Label(login, text="Password: ", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
         lbl_passwd.place(x=120, y=255)
-        ent_passwd = Entry(login)
+        ent_passwd = Entry(login, show="*")
         ent_passwd.place(x=245, y=255)
         # buttons
         btn_exit = Button(login, text="Exit", bg="#a5cf00", fg="#000000", highlightthickness=0, borderwidth=10,
@@ -150,30 +160,49 @@ class AllInOne:
                 passwd="@Lifechoices1234",
                 database="lifechoicesonline"
             )
+            try:
+                id_number = rsaidnumber.parse(ent_idnum.get())
+                phone_number = int(ent_cellnum.get())
+                nok_number = int(ent_nextkincell.get())
+                if id_number is False:
+                    messagebox.showerror("Error", "Please Enter A Valid ID Number")
+                elif type(phone_number) == str or type(nok_number) == str:
+                    messagebox.showerror("Error", "Please Use Digits For Cell Number(s)")
+                elif len(ent_idnum.get()) == 0 or len(ent_passwd.get()) == 0 or len(ent_cellnum.get()) == 0 or len(
+                        ent_nextkin.get()) == 0 or len(ent_nextkincell.get()) == 0:
+                    messagebox.showerror("Error", "Please Fill In Each Field Correctly")
+                elif len(ent_cellnum.get()) < 10 or len(ent_nextkincell.get()) < 10:
+                    messagebox.showerror("Error", "Please Enter A Valid 10 Digit Cell Number")
+                elif len(ent_idnum.get()) < 13:
+                    messagebox.showerror("Error", "Please Enter A Valid 13 Digit ID Number")
+                elif len(ent_cellnum.get()) < 10 or len(ent_nextkincell.get()) < 10 or len(ent_idnum.get()) < 13:
+                    messagebox.showerror("Error", "Please Enter 10 Digits For Your Number And 13 Digits For Your ID "
+                                                  "Number")
+                elif combo_unit.get() == "Select Your Unit":
+                    messagebox.showerror("Error", "Please Select Your LC Unit")
+                else:
+                    cursor = db.cursor()
+                    query = "INSERT INTO register (FullName, IDNumber, Password, CellNum, Unit) VALUES (%s, %s, %s, " \
+                            "%s, %s) "
+                    values = (
+                        ent_fullname.get(), ent_idnum.get(), ent_passwd.get(), ent_cellnum.get(), combo_unit.get())
+                    cursor.execute(query, values)
+                    db.commit()
 
-            if len(ent_idnum.get()) == 0 or len(ent_passwd.get()) == 0 or len(ent_cellnum.get()) == 0 or len(
-                    ent_nextkin.get()) == 0 or len(ent_nextkincell.get()) == 0:
-                messagebox.showerror("Error", "Please Fill In Each Field Correctly")
-            elif combo_unit.get() == "Select Your Unit":
-                messagebox.showerror("Error", "Please Select Your LC Unit")
-            else:
-                cursor = db.cursor()
-                query = "INSERT INTO register (FullName, IDNumber, Password, CellNum, Unit) VALUES (%s, %s, %s, %s, %s)"
-                values = (
-                    ent_fullname.get(), ent_idnum.get(), ent_passwd.get(), ent_cellnum.get(), combo_unit.get())
-                cursor.execute(query, values)
-                db.commit()
+                    reusable_id = cursor.lastrowid
 
-                reusable_id = cursor.lastrowid
+                    second_query = "INSERT INTO emergency (UserID, IDNum, NextOfKin, NextOfKinNum) VALUES (%s, %s, " \
+                                   "%s, %s) "
+                    second_values = (reusable_id, ent_idnum.get(), ent_nextkin.get(), ent_nextkincell.get())
+                    cursor.execute(second_query, second_values)
+                    db.commit()
 
-                second_query = "INSERT INTO emergency (UserID, IDNum, NextOfKin, NextOfKinNum) VALUES (%s, %s, %s, %s)"
-                second_values = (reusable_id, ent_idnum.get(), ent_nextkin.get(), ent_nextkincell.get())
-                cursor.execute(second_query, second_values)
-                db.commit()
-
-                messagebox.showinfo("Success", "You have Successfully Registered! Please Login On The Previous Window!")
-                register.withdraw()
-                self.login_window()
+                    messagebox.showinfo("Success", "You have Successfully Registered! Please Login On The Previous "
+                                                   "Window!")
+                    register.withdraw()
+                    self.login_window()
+            except ValueError:
+                messagebox.showerror("Error", "Please Use Digits For ID Number And Cell Phone Numbers Only")
 
         # labels
         lbl_fullname = Label(register, text="Full Name:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
@@ -221,7 +250,6 @@ class AllInOne:
         combo_unit["state"] = "readonly"
         combo_unit.set("Select Your Unit")
         combo_unit.place(x=280, y=380)
-        # global combo_unit
 
         register.mainloop()
 
@@ -248,18 +276,23 @@ class AllInOne:
             )
 
             cursor = db.cursor()
-            query = "SELECT IDNumber, Password, Unit FROM register"
-            foreign_id = cursor.lastrowid
-            cursor.execute(query)
-            my_result = cursor.fetchall()
+            query = "SELECT IDNumber, Password, Unit FROM register WHERE IDNumber = %s"
+            value = ent_idnum2.get()
+            cursor.execute(query, (value,))
+            my_result = cursor.fetchone()
 
-            for x in my_result:
-                if x[0] == str(ent_idnum2.get()) and x[1] == str(ent_passwd2.get()) and x[2] == "Staff":
+            try:
+                id_number = rsaidnumber.parse(ent_idnum2.get())
+                if id_number is False:
+                    messagebox.showerror("Error", "Please Enter A 13 Digit ID Number")
+                elif my_result[0] == ent_idnum2.get() and my_result[1] == ent_passwd2.get() and my_result[2] == "Staff":
                     messagebox.showinfo("Success", "You Have Successfully Logged In")
                     admin.withdraw()
                     self.admin_table()
                 else:
                     messagebox.showerror("Error", "You Do Not Have Admin Privileges")
+            except ValueError:
+                messagebox.showerror("Error", "Please Use A Valid ID Number")
 
         # image
         canvas = Canvas(admin, width=200, height=200, borderwidth=0, highlightthickness=0, bg="#000000")
@@ -274,7 +307,7 @@ class AllInOne:
         ent_idnum2.place(x=245, y=225)
         lbl_passwd2 = Label(admin, text="Password: ", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
         lbl_passwd2.place(x=120, y=255)
-        ent_passwd2 = Entry(admin)
+        ent_passwd2 = Entry(admin, show="*")
         ent_passwd2.place(x=245, y=255)
 
         # button
@@ -303,41 +336,290 @@ class AllInOne:
             window.title('User Information')
             window.geometry('1800x800')
 
-            def insert_user():
-                tv_window = Frame(window, width=400, height=400, bg="#000000")
-                tv_window.place(x=500, y=260)
+            def edit_user():
+                tv5_window = Frame(window, width=400, height=400, bg="#000000")
+                tv5_window.place(x=500, y=260)
 
-                def submit():
-                    my_db = mysql.connect(
+                def edit():
+                    my_db2 = mysql.connect(
                         host="localhost",
                         user="root",
                         passwd="@Lifechoices1234",
                         database="lifechoicesonline"
                     )
 
-                    if len(ent1.get()) == 0 or len(ent2.get()) == 0 or len(ent3.get()) == 0 or len(
-                            ent4.get()) == 0 or len(ent6.get()) == 0 or len(ent7.get()) == 0:
-                        messagebox.showerror("Error", "Please Fill In Each Field Correctly")
-                    elif combo_unit.get() == "Select Your Unit":
-                        messagebox.showerror("Error", "Please Select Your LC Unit")
+                    my_cursor3 = my_db2.cursor()
+                    query = "SELECT IDNumber FROM register WHERE IDNumber = %s"
+                    value = ent_edit.get()
+                    cursor.execute(query, (value,))
+                    results = cursor.fetchone()
+
+                    try:
+                        id_number = rsaidnumber.parse(ent_edit.get())
+                        if results[0] == ent_edit.get():
+                            edit_query = "UPDATE register SET Unit = %s WHERE IDNumber = %s"
+                            edit_value = (combo_unit.get(), ent_edit.get())
+                            my_cursor3.execute(edit_query, edit_value)
+                            my_db2.commit()
+                            messagebox.showinfo("Success", "You Have Successfully Updated The User")
+                            tv5_window.destroy()
+                            table_1()
+                        elif id_number is False:
+                            messagebox.showerror("Error", "Please Enter A Valid ID Number")
+                        if len(ent_edit.get()) == 0:
+                            messagebox.showerror("Error", "Please Enter The ID Number Of User You Would Like To Edit")
+
+                        elif combo_unit.get() == "Select Your Unit":
+                            messagebox.showerror("Error", "Please Select Your LC Unit")
+                    except ValueError:
+                        messagebox.showerror("Error", "Please Enter A Valid ID Number")
+
+                # label
+                lbl_edit = Label(tv5_window, text="ID Number:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl_edit.place(x=85, y=50)
+                lbl_unit = Label(tv5_window, text="LC Unit:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl_unit.place(x=85, y=100)
+
+                # Entry
+                ent_edit = Entry(tv5_window)
+                ent_edit.place(x=185, y=50)
+
+                # combo box
+                combo_unit = Combobox(tv5_window, width=17)
+                combo_unit["values"] = ("Academy", "Business", "Staff")
+                combo_unit["state"] = "readonly"
+                combo_unit.set("Select Your Unit")
+                combo_unit.place(x=185, y=100)
+
+                # button
+                btn_remove2 = Button(tv5_window, text="Submit", bg="#a5cf00", fg="#000000", highlightthickness=0,
+                                     borderwidth=10,
+                                     font="Halvetica 12 bold", command=edit)
+                btn_remove2.place(x=165, y=150)
+
+                tv5_window.mainloop()
+
+            def grant_privileges():
+                tv4_window = Frame(window, width=400, height=400, bg="#000000")
+                tv4_window.place(x=500, y=260)
+
+                def grant():
+                    my_db2 = mysql.connect(
+                        host="localhost",
+                        user="root",
+                        passwd="@Lifechoices1234",
+                        database="lifechoicesonline"
+                    )
+
+                    my_cursor3 = my_db2.cursor()
+
+                    try:
+                        user = ent_user.get()
+                        if len(ent_user.get()) == 0:
+                            messagebox.showerror("Error", "Please Insert User ID Number")
+                        elif type(user) == str:
+                            messagebox.showerror("Error", "Please User Alphabetical Characters Only")
+                        else:
+                            c_query = "CREATE USER %s@localhost IDENTIFIED BY %s"
+                            c_value = (ent_user.get(), ent_pass.get())
+                            my_cursor3.execute(c_query, c_value)
+                            my_db2.commit()
+                            p_query = "GRANT ALL PRIVILEGES ON lifechoicesonline.* TO %s@localhost"
+                            sel_data = str(ent_user.get())
+                            my_cursor3.execute(p_query, (sel_data,))
+                            my_db2.commit()
+                            f_query = "FLUSH PRIVILEGES"
+                            my_cursor3.execute(f_query)
+                            my_db2.commit()
+                            messagebox.showinfo("Success", "You Have Successfully Created A User And Granted Them "
+                                                           "Privileges")
+                            window.destroy()
+                            table_1()
+                    except ValueError:
+                        messagebox.showerror("Error", "Please Enter A Valid Username")
+
+                # label
+                lbl_user = Label(tv4_window, text="Username:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl_user.place(x=85, y=50)
+                lbl_pass = Label(tv4_window, text="Password:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl_pass.place(x=85, y=100)
+
+                ent_user = Entry(tv4_window)
+                ent_user.place(x=185, y=50)
+                ent_pass = Entry(tv4_window)
+                ent_pass.place(x=185, y=100)
+
+                # button
+                btn_remove2 = Button(tv4_window, text="Submit", bg="#a5cf00", fg="#000000", highlightthickness=0,
+                                     borderwidth=10,
+                                     font="Halvetica 12 bold", command=grant)
+                btn_remove2.place(x=165, y=150)
+
+                tv4_window.mainloop()
+
+            def remove_user():
+                tv3_window = Frame(window, width=400, height=400, bg="#000000")
+                tv3_window.place(x=500, y=260)
+                my_db2 = mysql.connect(
+                    host="localhost",
+                    user="root",
+                    passwd="@Lifechoices1234",
+                    database="lifechoicesonline"
+                )
+
+                my_cursor = my_db2.cursor()
+
+                def remove():
+                    if tree.selection() == ():
+                        messagebox.showerror("Error", "Please Select A User You Would Like To Grant Privileges")
                     else:
-                        my_cursor = my_db.cursor()
-                        query = "INSERT INTO register (FullName, IDNumber, Password, CellNum, Unit) VALUES (%s, %s, " \
-                                "%s, %s, %s) "
-                        values = (
-                            ent1.get(), ent2.get(), ent3.get(), ent4.get(), combo_unit.get())
-                        my_cursor.execute(query, values)
-                        my_db.commit()
+                        selected_item = tree.selection()[0]
+                        uid = tree.item(selected_item)['values'][5]
+                        del_query = "DELETE FROM timesheet WHERE UserID = %s"
+                        del_query2 = "DELETE FROM emergency WHERE UserID = %s"
+                        del_query3 = "DELETE FROM register WHERE UserID = %s"
+                        sel_data = (uid,)
+                        my_cursor.execute(del_query, sel_data)
+                        my_cursor.execute(del_query2, sel_data)
+                        my_cursor.execute(del_query3, sel_data)
+                        my_db2.commit()
+                        tree.delete(selected_item)
+                        messagebox.showinfo("Success", "You Have Successfully Deleted The User")
+                        window.destroy()
+                        table_1()
 
-                        reusable_id = my_cursor.lastrowid
+                # button
+                btn_remove2 = Button(tv3_window, text="Grant", bg="#a5cf00", fg="#000000", highlightthickness=0,
+                                     borderwidth=10,
+                                     font="Halvetica 12 bold", command=remove)
+                btn_remove2.place(x=165, y=150)
 
-                        second_query = "INSERT INTO emergency (UserID, IDNum, NextOfKin, NextOfKinNum) VALUES (%s, " \
-                                       "%s, %s, %s) "
-                        second_values = (reusable_id, ent2.get(), ent6.get(), ent7.get())
-                        my_cursor.execute(second_query, second_values)
-                        my_db.commit()
+                tv3_window.mainloop()
 
-                        messagebox.showinfo("Success", "You have Successfully Registered The User")
+            def update_user():
+                tv6_window = Frame(window, width=400, height=400, bg="#000000")
+                tv6_window.place(x=500, y=260)
+
+                def update():
+                    try:
+                        id_number = rsaidnumber.parse(ent2.get())
+                        phone_number = int(ent3.get())
+                        nok_number = int(ent7.get())
+                        if len(ent1.get()) == 0 or len(ent2.get()) == 0 or len(ent3.get()) == 0 or len(
+                                ent4.get()) == 0 or len(ent6.get()) == 0 or len(ent7.get()) == 0:
+                            messagebox.showerror("Error", "Please Fill In Each Field Correctly")
+                        elif id_number is False:
+                            messagebox.showerror("Error", "Please Enter A Valid ID Number")
+                        elif type(phone_number) == str or type(nok_number) == str:
+                            messagebox.showerror("Error", "Please Enter A Valid Cell Number")
+                        elif combo_unit.get() == "Select Your Unit":
+                            messagebox.showerror("Error", "Please Select Your LC Unit")
+                        else:
+                            my_cursor = my_db.cursor()
+                            query = "UPDATE register SET FullName = %s, IDNumber = %s, Password = %s, CellNum = %s, " \
+                                    "Unit = %s WHERE IDNumber = %s "
+                            values = (
+                                ent1.get(), ent2.get(), ent3.get(), ent4.get(), combo_unit.get(), ent2.get())
+                            my_cursor.execute(query, values)
+                            my_db.commit()
+
+                            second_query = "UPDATE emergency SET IDNum = %s, NextOfKin = %s, NextOfKinNum = " \
+                                           "%s WHERE IDNum = %s "
+                            second_values = (ent2.get(), ent6.get(), ent7.get(), ent2.get())
+                            my_cursor.execute(second_query, second_values)
+                            my_db.commit()
+
+                            messagebox.showinfo("Success", "You have Successfully Edited The User's Details")
+                            window.destroy()
+                            table_1()
+                    except ValueError:
+                        messagebox.showerror("Error", "Please Enter Digits Only For ID Number And Cell Number(s)")
+
+                # labels
+                lbl1 = Label(tv6_window, text="Full Name:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl1.place(x=0, y=10)
+                lbl2 = Label(tv6_window, text="ID Number:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl2.place(x=0, y=60)
+                lbl3 = Label(tv6_window, text="Password:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl3.place(x=0, y=110)
+                lbl4 = Label(tv6_window, text="Cell Number:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl4.place(x=0, y=160)
+                lbl5 = Label(tv6_window, text="LC Unit:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl5.place(x=0, y=210)
+                lbl6 = Label(tv6_window, text="Next Of Kin:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
+                lbl6.place(x=0, y=260)
+                lbl7 = Label(tv6_window, text="Next Of Kin Number:", bg="#000000", fg="#a5cf00",
+                             font="Halvetica 12 bold")
+                lbl7.place(x=0, y=310)
+
+                # entries
+                ent1 = Entry(tv6_window)
+                ent1.place(x=200, y=10)
+                ent2 = Entry(tv6_window)
+                ent2.place(x=200, y=60)
+                ent3 = Entry(tv6_window)
+                ent3.place(x=200, y=110)
+                ent4 = Entry(tv6_window)
+                ent4.place(x=200, y=160)
+                combo_unit = Combobox(tv6_window, width=17)
+                combo_unit["values"] = ("Academy", "Business", "Staff")
+                combo_unit["state"] = "readonly"
+                combo_unit.set("Select Your Unit")
+                combo_unit.place(x=200, y=210)
+                ent6 = Entry(tv6_window)
+                ent6.place(x=200, y=260)
+                ent7 = Entry(tv6_window)
+                ent7.place(x=200, y=310)
+
+                # button
+                btn_submit = Button(tv6_window, text="Submit", bg="#a5cf00", fg="#000000", highlightthickness=0,
+                                    borderwidth=10,
+                                    font="Halvetica 12 bold", command=update)
+                btn_submit.place(x=170, y=350)
+
+                tv6_window.mainloop()
+
+            def insert_user():
+                tv_window = Frame(window, width=400, height=400, bg="#000000")
+                tv_window.place(x=500, y=260)
+
+                def submit():
+                    try:
+                        id_number = rsaidnumber.parse(ent2.get())
+                        phone_number = int(ent3.get())
+                        nok_number = int(ent7.get())
+                        if len(ent1.get()) == 0 or len(ent2.get()) == 0 or len(ent3.get()) == 0 or len(
+                                ent4.get()) == 0 or len(ent6.get()) == 0 or len(ent7.get()) == 0:
+                            messagebox.showerror("Error", "Please Fill In Each Field Correctly")
+                        elif id_number is False:
+                            messagebox.showerror("Error", "Please Enter A Valid ID Number")
+                        elif type(phone_number) == str or type(nok_number) == str:
+                            messagebox.showerror("Error", "Please Enter A Valid Cell Number")
+                        elif combo_unit.get() == "Select Your Unit":
+                            messagebox.showerror("Error", "Please Select Your LC Unit")
+                        else:
+                            my_cursor = my_db.cursor()
+                            query = "INSERT INTO register (FullName, IDNumber, Password, CellNum, Unit) VALUES (%s, " \
+                                    "%s, " \
+                                    "%s, %s, %s) "
+                            values = (
+                                ent1.get(), ent2.get(), ent3.get(), ent4.get(), combo_unit.get())
+                            my_cursor.execute(query, values)
+                            my_db.commit()
+
+                            reusable_id = my_cursor.lastrowid
+
+                            second_query = "INSERT INTO emergency (UserID, IDNum, NextOfKin, NextOfKinNum) VALUES (%s, " \
+                                           "%s, %s, %s) "
+                            second_values = (reusable_id, ent2.get(), ent6.get(), ent7.get())
+                            my_cursor.execute(second_query, second_values)
+                            my_db.commit()
+
+                            messagebox.showinfo("Success", "You have Successfully Registered The User")
+                            window.destroy()
+                            table_1()
+                    except ValueError:
+                        messagebox.showerror("Error", "Please Enter Digits Only For ID Number And Cell Number(s)")
 
                 # labels
                 lbl1 = Label(tv_window, text="Full Name:", bg="#000000", fg="#a5cf00", font="Halvetica 12 bold")
@@ -389,12 +671,6 @@ class AllInOne:
             tree = Treeview(window, columns=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), show="headings")
             tree.heading('#0', text='Tables', anchor='center')
 
-            # scroll bar
-            # sb = Scrollbar(window, orient=HORIZONTAL)
-            # sb.place(x=50, y=250)
-            # tree.config(xscrollcommand=sb.set)
-            # sb.config(command=tree.xview())
-
             # place the Treeview widget on the root window
             tree.grid(row=0, column=0, sticky='ne')
             tree.column("1", anchor="center")
@@ -421,14 +697,14 @@ class AllInOne:
             tree.heading(11, text="Logged Out Date")
             tree.heading(12, text="Logged Out Time")
 
-            db = mysql.connect(
+            my_db = mysql.connect(
                 host="localhost",
                 user="root",
                 passwd="@Lifechoices1234",
                 database="lifechoicesonline"
             )
 
-            cursor = db.cursor()
+            cursor = my_db.cursor()
             first_query = "SELECT register.FullName, register.IDNumber, register.Password, register.CellNum, " \
                           "register.Unit, " \
                           "register.UserID, emergency.NextOfKin, emergency.NextOfKinNum, timesheet.LoggedInDate, " \
@@ -446,17 +722,23 @@ class AllInOne:
             # button
             btn_add = Button(window, text="Add User", highlightthickness=0, borderwidth=10, font="Halvetica 12 bold",
                              command=insert_user)
-            btn_add.place(x=250, y=250)
-            btn_edit = Button(window, text="Edit User", highlightthickness=0, borderwidth=10, font="Halvetica 12 bold")
-            btn_edit.place(x=250, y=300)
+            btn_add.place(x=220, y=250)
+            btn_edit = Button(window, text="Admin Privileges", highlightthickness=0, borderwidth=10,
+                              font="Halvetica 12 bold", command=edit_user)
+            btn_edit.place(x=220, y=400)
             btn_remove = Button(window, text="Remove User", highlightthickness=0, borderwidth=10,
-                                font="Halvetica 12 bold")
-            btn_remove.place(x=230, y=350)
+                                font="Halvetica 12 bold", command=remove_user)
+            btn_remove.place(x=220, y=300)
+            btn_grant = Button(window, text="Database Privileges", highlightthickness=0, borderwidth=10,
+                               font="Halvetica 12 bold",
+                               command=grant_privileges)
+            btn_grant.place(x=220, y=450)
+            btn_grant = Button(window, text="Edit User Details", highlightthickness=0, borderwidth=10,
+                               font="Halvetica 12 bold",
+                               command=update_user)
+            btn_grant.place(x=220, y=350)
 
             window.mainloop()
-
-        def remove_user():
-            pass
 
         # image
         canvas = Canvas(admin_page, width=500, height=250, borderwidth=0, highlightthickness=0, bg="#000000")
