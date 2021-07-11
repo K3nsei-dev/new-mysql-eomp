@@ -350,7 +350,7 @@ class AllInOne:
         btn_login2 = Button(admin, text="Login", bg="#a5cf00", fg="#000000", font="Halvetica 12 bold",
                             borderwidth=10,
                             highlightthickness=0, command=admin_login)
-        btn_login2.place(x=193, y=300)
+        btn_login2.place(x=198, y=300)
         btn_exit = Button(admin, text="Exit", bg="#a5cf00", fg="#000000", highlightthickness=0, borderwidth=10,
                           font="Halvetica 12 bold", command=exit_code2)
         btn_exit.place(x=117, y=300)
