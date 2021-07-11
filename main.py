@@ -22,6 +22,9 @@ date = now.strftime("%Y-%m-%d %H:%M:%S")
 # regular expression for validating email
 regex = '^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$'
 
+# key-binding
+root.bind('<a>', lambda x: [self.admin_window(event=None)])
+
 
 class AllInOne:
     def __init__(self, master):
@@ -50,9 +53,6 @@ class AllInOne:
         login.geometry("500x500")
         login.config(bg="#000000")
         login.title("Login Form")
-
-        # key-binding
-        login.bind("<Control-a>", self.admin_window)
 
         def clear_program():
             ent_idnum.delete(0, END)
@@ -214,7 +214,7 @@ class AllInOne:
 
                     # creates SMTP session
                     s = smtplib.SMTP('smtp.gmail.com', 587)
-                    sender_email_id = 'lc.onlinelogin@gmail.com'
+                    sender_email_id = '	lc.onlinelogin@gmail.com'
                     receiver_email_id = ent_email.get()
                     password = "lifechoices1234"
                     # start TLS for security
@@ -222,10 +222,10 @@ class AllInOne:
                     # Authentication
                     s.login(sender_email_id, password)
                     # message to be sent
-                    message = "Your Login details are as followed:\n"
-                    message = message + "Your Username: " + " " + ent_idnum.get() + "\n" + "Your Password: " + " " + ent_passwd.get() + "\n" + "Please do not forget to login after receiving this email!"
+                    first_message = "Your Login details are as follows:\n"
+                    second_message = first_message + "Your Username:" + ent_idnum.get() + "\n" + "Your Password:" + ent_passwd.get() + "\n" + "Please do not forget to login after receiving this email!"
                     # sending the mail
-                    s.sendmail(sender_email_id, receiver_email_id, message)
+                    s.sendmail(sender_email_id, receiver_email_id, second_message)
                     # terminating the session
                     s.quit()
                     playsound("./Audio/mail.mp3")
@@ -251,7 +251,7 @@ class AllInOne:
                                 font="Halvetica 12 bold")
         lbl_nextkincell.place(x=80, y=440)
         lbl_email = Label(register, text="Your Email Address:", bg="#000000", fg="#a5cf00",
-                                font="Halvetica 12 bold")
+                          font="Halvetica 12 bold")
         lbl_email.place(x=80, y=470)
         # image
         canvas = Canvas(register, width=500, height=250, borderwidth=0, highlightthickness=0, bg="#000000")
@@ -525,7 +525,7 @@ class AllInOne:
                         table_1()
 
                 # button
-                btn_remove2 = Button(tv3_window, text="Grant", bg="#a5cf00", fg="#000000", highlightthickness=0,
+                btn_remove2 = Button(tv3_window, text="Remove", bg="#a5cf00", fg="#000000", highlightthickness=0,
                                      borderwidth=10,
                                      font="Halvetica 12 bold", command=remove)
                 btn_remove2.place(x=165, y=150)
@@ -786,7 +786,7 @@ class AllInOne:
         btn_tv1 = Button(admin_page, text="Admin Table", bg="#a5cf00", fg="#000000", font="Halvetica 12 bold",
                          borderwidth=10,
                          highlightthickness=0, command=table_1)
-        btn_tv1.place(x=170, y=250)
+        btn_tv1.place(x=185, y=250)
 
         admin_page.mainloop()
 
